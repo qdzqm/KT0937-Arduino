@@ -50,6 +50,14 @@ KT0937_D8_Error kt0937_init() {
   Wire.begin();
   Wire.setClock(100000);  // 100kHz I2C clock
 
+  kt0937_writeRegister(0x10, 0x40); //Standby_Step_1: Setting the register STBYLDO_CALI_EN (0x10<6>) to 1.
+  kt0937_writeRegister(0x76, 0xA4); //Standby_Step_2: 
+  kt0937_writeRegister(0x0E, 0x20); //Standby_Step_3:
+  delay(2);
+  kt0937_writeRegister(0x0E, 0x00); //Waking Up: Clearing STDBY (0x0E<5>) to 0.
+  delay(1);
+  kt0937_writeRegister(0x76, 0xA6); //Waking Up: Setting the register STBYLDO_PD (0x76<1>) to 1.
+  delay(1);
   kt0937_writeRegister(0x4E, 0x32); //Setting DEPOP_TC<2:0> and AUDV_DCLVL<2:0> register to 0x32(0011,0010) 
   kt0937_writeRegister(0x04, 0x00); //Setting DIVIDERP<10:8> to 0
   kt0937_writeRegister(0x05, 0x01); //Setting DIVIDERP<7:0> to 0x01
@@ -66,6 +74,10 @@ KT0937_D8_Error kt0937_init() {
     delay(10);
   } //Wait until the POWERON_FINISH flag was 1, which means the value of reg 0x1B is 0x84(1000,0100);
   kt0937_writeRegister(0x62, 0x41); //Setting FLT_SEL<2:0> register to 0x41(0100,0001)
+  kt0937_writeRegister(0x3E, 0x03); //Setting FM AFC
+  kt0937_writeRegister(0x3F, 0x00); //Setting ME AFC
+  kt0937_writeRegister(0x38, 0x54); //Setting SW AFC
+  kt0937_writeRegister(0x2F, 0x25); //Setting ANT_CALI_SWITCH_BAND AM_SUP_ENHANCE AM_SEL_ENHANCE to 1
 
 
   return KT0937_D8_Error::OK;
