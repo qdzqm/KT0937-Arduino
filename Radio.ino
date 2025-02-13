@@ -82,7 +82,7 @@ void setAM(){
   WriteRegister(0x8d, 0x54);//MW最高频率1620KHz
   WriteRegister(0x9b, 0x4a);//通道间隔1620-522=1098
   WriteRegister(0x9a, 0x04);//通道间隔1620-522=1098
-  WriteRegister(0x18, 0x59);//FM Band Space 100KHz, MW Band Space 9KHz
+  WriteRegister(0x18, 0x58);//FM Band Space 100KHz, MW Band Space 9KHz
   WriteRegister(0x71, 0x04);//Enable Channel ADC, Channel ADC Start
   WriteRegister(0x22, 0xd5);//Enable Tune Interrupt, INT is edge triggered, FM_SMUTE_START_SNR=default
   WriteRegister(0x1F, 0xd3);//INT interrupt is active high, FM_SMUTE_START_RSSI=default, FM_SMUTE_SLOPE_RSSI=default
