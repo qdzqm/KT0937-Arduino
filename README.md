@@ -1,3 +1,4 @@
+# KT0937-Arduino
 In this project, the KT0937-D8 chip can be controlled to achieve basic FM and MW band reception, and 2-Wire I2C can be used to initialize the chip, as well as realize the band switching and current frequency reading.
 
 I2C uses the default Pins of Arduino, for example, for the Arduino Pro Mini, which are A4 and A5.
