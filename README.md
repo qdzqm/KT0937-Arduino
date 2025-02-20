@@ -9,5 +9,5 @@ You can also use a rotary encoder to control the frequency by controlling the GP
 
 This project is just a minimal implementation of a radio based on the KT0937-D8 chip. In fact, you can delete a few lines of code for the register settings and the program will still function and maintain the basic functionality of the radio. As an amateur coder, mistakes are inevitable.
 
-# I bought 6 chips, only 1 of them is good, not sure if others get the same trouble.
-# 我从淘宝上一共买了6片KT0937-D8，但只有一片好用，不知道哪里出了问题。
+I bought 6 chips, only 1 of them is good, not sure if others get the same trouble.
+我从淘宝上一共买了6片KT0937-D8，但只有一片好用，不知道哪里出了问题。
