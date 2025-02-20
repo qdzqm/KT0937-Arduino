@@ -4,7 +4,7 @@
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
@@ -15,6 +15,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 int j=0, i=0, k=0;
 bool FM_AM = HIGH; //HIGH is FM, LOW is MW
 bool currentMode = HIGH; //HIGH is FM, LOW is MW
+bool update = HIGH;
+
 uint32_t freq=0,freqAM=0;
 float freqFM=0;
 void setup() {
@@ -22,16 +24,16 @@ void setup() {
   display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
+  display.setRotation(3);
   Wire.begin();
-  pinMode(10,INPUT);
+  pinMode(10,INPUT);pinMode(3,INPUT);
   FM_AM = digitalRead(10); //D10作为波段开关
+  chipInit();
   setFM();
-  delay(10);
   UpdateDisplay();
 }
 void loop() {
   FM_AM = digitalRead(10);
-
   if (FM_AM == HIGH && currentMode == LOW){
     setFM();
     currentMode = HIGH;
@@ -42,21 +44,81 @@ void loop() {
     currentMode = LOW;
     display.setTextSize(1);
   }
-  i = analogRead(A1); //A1连接到CH，旋转电位器会引起CH电压变化，进而导致频率变化
-  if(i > j+1 || i < j-1){
-
+  update=digitalRead(3);//D3连接到INT
+  if(update){
     GetFrequency(&freq);
     freqFM = (float)freq/1000;
     freqAM = freq/50;
-    UpdateDisplay();      
-    j=i;
+    UpdateDisplay();
     display.display();      // Show initial text
-    Serial.print(millis()/1000);
+    Serial.print(i);
     Serial.print("  freq: ");
     Serial.println(freq);
   }
+  // i = analogRead(A1); //A1连接到CH，旋转电位器会引起CH电压变化，进而导致频率变化
+  // if(i > j+1 || i < j-1){
+  //   GetFrequency(&freq);
+  //   freqFM = (float)freq/1000;
+  //   freqAM = freq/50;
+  //   UpdateDisplay();      
+  //   j=i;
+  //   display.display();      // Show initial text
+  //   Serial.print(i);
+  //   Serial.print("  freq: ");
+  //   Serial.println(freq);
+  // }
   delay(1);
 }
+//Initialize KT0937-D8
+
+bool chipInit(){
+  wakeUp();
+  setDepop();
+  setClock();
+  //WriteRegister(0x1b, 0x84);
+  uint8_t poweron_finish;
+  ReadRegister(0x1b, &poweron_finish);
+  Serial.println(poweron_finish,HEX);
+  if(poweron_finish == 0x84){
+    setRadio();
+    return true;
+  }
+  else{
+    return false;
+  }
+}
+void setStandby(){
+  WriteRegister(0x10, 0x40);
+  WriteRegister(0x76, 0xa4);
+  WriteRegister(0x0e, 0x20);
+}
+void wakeUp(){
+  WriteRegister(0x0e, 0x00);
+  delay(2);
+  WriteRegister(0x76, 0xa6);
+}
+void setDepop(){ 
+  WriteRegister(0x4E, 0x32);
+}
+void setClock(){ //Use 32.768kHz Crystal
+  WriteRegister(0x04, 0x00);
+  WriteRegister(0x05, 0x01);
+  WriteRegister(0x06, 0x02);
+  WriteRegister(0x07, 0x9c);
+  WriteRegister(0x08, 0x08);
+  WriteRegister(0x09, 0x00);
+  WriteRegister(0x0a, 0x00);
+  WriteRegister(0x0d, 0xc3);
+  WriteRegister(0x04, 0x80);
+}
+void setRadio(){
+  WriteRegister(0x62, 0x42);
+  WriteRegister(0x2f, 0x25);
+  WriteRegister(0x2a, 0xc0);
+  WriteRegister(0x69, 0x8a);
+  WriteRegister(0x0f, 0x1f);
+}
+//Set FM Band.
 void setFM(){
   WriteRegister(0x04, 0x80);//Clock initialization completed.
   WriteRegister(0x51, 0x02);//Dial controlled channel increase/decrease
@@ -112,21 +174,21 @@ void GetFrequency(uint32_t *frequency) {
 void UpdateDisplay(){
   display.clearDisplay();
   if(FM_AM == HIGH){
-    display.setCursor(20, 12);
-    display.setTextSize(2);
+    display.setCursor(1, 1);
+    display.setTextSize(1);
     display.print(freqFM);
     display.setTextSize(1);
     display.print(" MHz");
-    display.setCursor(110, 22);
+    display.setCursor(1, 12);
     display.print("FM");
   }
   else{
-    display.setCursor(20, 12);
-    display.setTextSize(2);
+    display.setCursor(1, 1);
+    display.setTextSize(1);
     display.print(freqAM);
     display.setTextSize(1);
     display.print(" KHz");
-    display.setCursor(110, 22);
+    display.setCursor(1, 12);
     display.print("MW");
   }
 }
