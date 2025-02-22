@@ -18,6 +18,7 @@ bool currentMode = HIGH; //HIGH is FM, LOW is MW
 bool update = HIGH;
 
 uint32_t freq=0,freqAM=0;
+uint8_t fm_rssi=0,mw_rssi=0,fm_snr=0,mw_snr=0,sw_rssi=0,sw_snr=0;
 float freqFM=0;
 void setup() {
   Serial.begin(57600);
@@ -28,79 +29,61 @@ void setup() {
   Wire.begin();
   pinMode(10,INPUT);pinMode(3,INPUT);
   FM_AM = digitalRead(10); //D10作为波段开关
-  chipInit();
-  setFM();
+  ChipInit();
+  SetFM();
   UpdateDisplay();
 }
 void loop() {
   FM_AM = digitalRead(10);
   if (FM_AM == HIGH && currentMode == LOW){
-    setFM();
+    SetFM();
     currentMode = HIGH;
     display.setTextSize(1);
   }
   if (FM_AM == LOW && currentMode == HIGH){
-    setAM();
+    SetAM();
     currentMode = LOW;
     display.setTextSize(1);
   }
-  update=digitalRead(3);//D3连接到INT
+  update=digitalRead(3);
   if(update){
     GetFrequency(&freq);
-    freqFM = (float)freq/1000;
-    freqAM = freq/50;
+    freqFM = (float)freq/20;
+    freqAM = freq;
+    GetFMrssi(&fm_rssi);
+    GetFMsnr(&fm_snr);
+    GetMWrssi(&mw_rssi);
+    GetMWsnr(&mw_snr);
     UpdateDisplay();
     display.display();      // Show initial text
     Serial.print(i);
     Serial.print("  freq: ");
     Serial.println(freq);
   }
-  // i = analogRead(A1); //A1连接到CH，旋转电位器会引起CH电压变化，进而导致频率变化
-  // if(i > j+1 || i < j-1){
-  //   GetFrequency(&freq);
-  //   freqFM = (float)freq/1000;
-  //   freqAM = freq/50;
-  //   UpdateDisplay();      
-  //   j=i;
-  //   display.display();      // Show initial text
-  //   Serial.print(i);
-  //   Serial.print("  freq: ");
-  //   Serial.println(freq);
-  // }
   delay(1);
 }
 //Initialize KT0937-D8
 
-bool chipInit(){
-  wakeUp();
-  setDepop();
-  setClock();
-  //WriteRegister(0x1b, 0x84);
-  uint8_t poweron_finish;
-  ReadRegister(0x1b, &poweron_finish);
-  Serial.println(poweron_finish,HEX);
-  if(poweron_finish == 0x84){
-    setRadio();
-    return true;
-  }
-  else{
-    return false;
-  }
+bool ChipInit(){
+  WakeUp();
+  SetDepop();
+  SetClock();
+  SetRadio();
 }
-void setStandby(){
+void SetStandby(){  //休眠了
   WriteRegister(0x10, 0x40);
   WriteRegister(0x76, 0xa4);
   WriteRegister(0x0e, 0x20);
 }
-void wakeUp(){
+void WakeUp(){  //如果是直接上电，其实不需要这个步骤
   WriteRegister(0x0e, 0x00);
   delay(2);
   WriteRegister(0x76, 0xa6);
 }
-void setDepop(){ 
+void SetDepop(){ 
   WriteRegister(0x4E, 0x32);
 }
-void setClock(){ //Use 32.768kHz Crystal
+void SetClock(){ //Use 32.768kHz Crystal
   WriteRegister(0x04, 0x00);
   WriteRegister(0x05, 0x01);
   WriteRegister(0x06, 0x02);
@@ -111,15 +94,15 @@ void setClock(){ //Use 32.768kHz Crystal
   WriteRegister(0x0d, 0xc3);
   WriteRegister(0x04, 0x80);
 }
-void setRadio(){
+void SetRadio(){ 
   WriteRegister(0x62, 0x42);
-  WriteRegister(0x2f, 0x25);
+  WriteRegister(0x2f, 0x25);//Enable AM_SEL_ENHANCE, Enable AM_SUP_ENHANCE, Enable ANT_CALI_SWITCH_BAND
   WriteRegister(0x2a, 0xc0);
   WriteRegister(0x69, 0x8a);
   WriteRegister(0x0f, 0x1f);
 }
 //Set FM Band.
-void setFM(){
+void SetFM(){
   WriteRegister(0x04, 0x80);//Clock initialization completed.
   WriteRegister(0x51, 0x02);//Dial controlled channel increase/decrease
   WriteRegister(0x9b, 0xcd);//设置87.5MHz~108MHz之间分为205个通道，间隔0.1MHz
@@ -133,7 +116,7 @@ void setFM(){
   WriteRegister(0x22, 0xd5);//Enable Tune Interrupt, INT is edge triggered, FM_SMUTE_START_SNR=default
   WriteRegister(0x1F, 0xd3);//INT interrupt is active high, FM_SMUTE_START_RSSI=default, FM_SMUTE_SLOPE_RSSI=default
 }
-void setAM(){
+void SetAM(){
   WriteRegister(0x04, 0x80);//Clock initialization completed.
   WriteRegister(0x51, 0x02);//Dial controlled channel increase/decrease
   WriteRegister(0x9b, 0x7a);//通道间隔(1620-522)/9=122
@@ -167,8 +150,27 @@ void GetFrequency(uint32_t *frequency) {
   uint8_t high_byte, low_byte;
   ReadRegister(0xe4, &high_byte);
   ReadRegister(0xe5, &low_byte);
-  uint32_t channel = (high_byte << 8) | low_byte;
-  *frequency = channel * 50;
+  *frequency = (high_byte << 8) | low_byte;
+}
+
+void GetFMrssi(uint8_t *rssi){
+  uint8_t fm_rssi;
+  ReadRegister(0xe6, &fm_rssi);
+  *rssi = fm_rssi -3;
+}
+
+void GetFMsnr(uint8_t *snr){
+  ReadRegister(0xe2, snr);
+}
+
+void GetMWrssi(uint8_t *rssi){
+  uint8_t mw_rssi;
+  ReadRegister(0xea, &mw_rssi);
+  *rssi = mw_rssi -3;
+}
+
+void GetMWsnr(uint8_t *snr){
+  ReadRegister(0xec, snr);
 }
 
 void UpdateDisplay(){
@@ -180,7 +182,11 @@ void UpdateDisplay(){
     display.setTextSize(1);
     display.print(" MHz");
     display.setCursor(1, 12);
-    display.print("FM");
+    display.println("FM");
+    display.print("rssi:");
+    display.println(fm_rssi);
+    display.print("snr:");
+    display.print(fm_snr);
   }
   else{
     display.setCursor(1, 1);
@@ -189,6 +195,10 @@ void UpdateDisplay(){
     display.setTextSize(1);
     display.print(" KHz");
     display.setCursor(1, 12);
-    display.print("MW");
+    display.println("MW");
+    display.print("rssi:");
+    display.println(mw_rssi);
+    display.print("snr:");
+    display.print(mw_snr);
   }
 }
