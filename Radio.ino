@@ -70,12 +70,12 @@ bool ChipInit(){
   SetClock();
   SetRadio();
 }
-void SetStandby(){  //休眠了
+void SetStandby(){
   WriteRegister(0x10, 0x40);
   WriteRegister(0x76, 0xa4);
   WriteRegister(0x0e, 0x20);
 }
-void WakeUp(){  //如果是直接上电，其实不需要这个步骤
+void WakeUp(){
   WriteRegister(0x0e, 0x00);
   delay(2);
   WriteRegister(0x76, 0xa6);
@@ -94,9 +94,9 @@ void SetClock(){ //Use 32.768kHz Crystal
   WriteRegister(0x0d, 0xc3);
   WriteRegister(0x04, 0x80);
 }
-void SetRadio(){ 
-  WriteRegister(0x62, 0x42);
-  WriteRegister(0x2f, 0x25);//Enable AM_SEL_ENHANCE, Enable AM_SUP_ENHANCE, Enable ANT_CALI_SWITCH_BAND
+void SetRadio(){
+  WriteRegister(0x62, 0x41);
+  WriteRegister(0x2f, 0x25);
   WriteRegister(0x2a, 0xc0);
   WriteRegister(0x69, 0x8a);
   WriteRegister(0x0f, 0x1f);
@@ -176,29 +176,52 @@ void GetMWsnr(uint8_t *snr){
 void UpdateDisplay(){
   display.clearDisplay();
   if(FM_AM == HIGH){
-    display.setCursor(1, 1);
+    display.setCursor(0, 60);
+    display.setTextSize(2);
+    String str = String(freqFM);
+    str.remove(str.length()-1);
+    display.print(str);
+    display.setCursor(45, 80);
     display.setTextSize(1);
-    display.print(freqFM);
-    display.setTextSize(1);
-    display.print(" MHz");
-    display.setCursor(1, 12);
-    display.println("FM");
-    display.print("rssi:");
-    display.println(fm_rssi);
-    display.print("snr:");
-    display.print(fm_snr);
+    display.print("MHz   ");
+    //display.setCursor(1, 12);
+    display.setCursor(0, 44);
+    display.print("FM");
+    // display.setCursor(0, 12);
+    // display.print("rssi:");
+    // display.print(fm_rssi);
+    // display.setCursor(0, 24);
+    // display.print("snr:");
+    // display.println(fm_snr);
+    // display.setCursor(0, 36);
+    uint16_t signal=fm_rssi * fm_snr;
+    // display.print("Signal:");
+    display.setCursor(0, 0);
+    //display.print(signal/27);
+    display.fillRect(0, 0, (signal/27), 6, WHITE);
   }
   else{
-    display.setCursor(1, 1);
+    display.setCursor(0, 60);
+    display.setTextSize(2);
+    String str = String(freqAM);
+    display.print(str);
+    display.setCursor(45, 80);
     display.setTextSize(1);
-    display.print(freqAM);
-    display.setTextSize(1);
-    display.print(" KHz");
-    display.setCursor(1, 12);
-    display.println("MW");
-    display.print("rssi:");
-    display.println(mw_rssi);
-    display.print("snr:");
-    display.print(mw_snr);
+    display.print("KHz   ");
+    //display.setCursor(1, 12);
+    display.setCursor(0, 44);
+    display.print("MW");
+    // display.setCursor(0, 12);
+    // display.print("rssi:");
+    // display.print(mw_rssi);
+    // display.setCursor(0, 24);
+    // display.print("snr:");
+    // display.println(mw_snr);
+    // display.setCursor(0, 36);
+    uint16_t signal=mw_rssi * mw_snr;
+    // display.print("Signal:");
+    display.setCursor(0, 0);
+    //display.print(signal/27);
+    display.fillRect(0, 0, (signal/47), 6, WHITE);
   }
 }
