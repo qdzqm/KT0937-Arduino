@@ -55,10 +55,7 @@ void loop() {
     GetMWrssi(&mw_rssi);
     GetMWsnr(&mw_snr);
     UpdateDisplay();
-    display.display();      // Show initial text
-    Serial.print(i);
-    Serial.print("  freq: ");
-    Serial.println(freq);
+    display.display();      
   }
   delay(1);
 }
@@ -115,6 +112,7 @@ void SetFM(){
   WriteRegister(0x71, 0x04);//Enable Channel ADC, Channel ADC Start
   WriteRegister(0x22, 0xd5);//Enable Tune Interrupt, INT is edge triggered, FM_SMUTE_START_SNR=default
   WriteRegister(0x1F, 0xd3);//INT interrupt is active high, FM_SMUTE_START_RSSI=default, FM_SMUTE_SLOPE_RSSI=default
+  WriteRegister(0x2b, 0x20);//Force mono, 75us De-emphasis, Blend enable
 }
 void SetAM(){
   WriteRegister(0x04, 0x80);//Clock initialization completed.
@@ -173,6 +171,12 @@ void GetMWsnr(uint8_t *snr){
   ReadRegister(0xec, snr);
 }
 
+bool CheckStereo(){
+  uint8_t i=0;
+  ReadRegister(0xde, &i);
+  i = i & 0x01;
+  return i;
+}
 void UpdateDisplay(){
   display.clearDisplay();
   if(FM_AM == HIGH){
@@ -184,21 +188,19 @@ void UpdateDisplay(){
     display.setCursor(45, 80);
     display.setTextSize(1);
     display.print("MHz   ");
-    //display.setCursor(1, 12);
     display.setCursor(0, 44);
     display.print("FM");
-    // display.setCursor(0, 12);
-    // display.print("rssi:");
-    // display.print(fm_rssi);
-    // display.setCursor(0, 24);
-    // display.print("snr:");
-    // display.println(fm_snr);
-    // display.setCursor(0, 36);
-    uint16_t signal=fm_rssi * fm_snr;
-    // display.print("Signal:");
+    uint16_t fm_signal=fm_rssi * fm_snr;//the fm_signal will very big between the strong and weak channels.
     display.setCursor(0, 0);
-    //display.print(signal/27);
-    display.fillRect(0, 0, (signal/27), 6, WHITE);
+    display.fillRect(0, 0, (fm_signal/27), 6, WHITE);
+    if(CheckStereo()){
+      display.setCursor(26,20);
+      display.print("STEREO");
+    }
+    else{
+      display.setCursor(38,20);
+      display.print("MONO");
+    }
   }
   else{
     display.setCursor(0, 60);
@@ -208,20 +210,12 @@ void UpdateDisplay(){
     display.setCursor(45, 80);
     display.setTextSize(1);
     display.print("KHz   ");
-    //display.setCursor(1, 12);
     display.setCursor(0, 44);
     display.print("MW");
-    // display.setCursor(0, 12);
-    // display.print("rssi:");
-    // display.print(mw_rssi);
-    // display.setCursor(0, 24);
-    // display.print("snr:");
-    // display.println(mw_snr);
-    // display.setCursor(0, 36);
-    uint16_t signal=mw_rssi * mw_snr;
-    // display.print("Signal:");
+    uint16_t mw_signal=mw_rssi * mw_snr;
     display.setCursor(0, 0);
-    //display.print(signal/27);
-    display.fillRect(0, 0, (signal/47), 6, WHITE);
+    display.fillRect(0, 0, (mw_signal/47), 6, WHITE);
   }
 }
+
+
